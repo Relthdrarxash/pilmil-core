@@ -23,6 +23,5 @@ dependencyResolutionManagement {
     }
 }
 
-include(":core-model")
-include(":core-designsystem")
 include(":core-platform")
+include(":core-designsystem")
