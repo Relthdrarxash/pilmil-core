@@ -6,7 +6,7 @@
 
 ---
 
-## 🎯 Philosophie & Découpage
+## Philosophie & Découpage
 
 Pour éviter tout couplage indésirable et préserver la légèreté des applications, **les règles métier et modèles spécifiques restent strictement dans leurs dépôts respectifs** (ex: les règles FIGO dans *Lunaison*, le protocole TCC-I dans *Sommelle*, la cadence cardiaque dans *Sauve*).
 
@@ -26,7 +26,7 @@ pilmil-core/
 
 ---
 
-## 📱 Portabilité Android + iOS
+## Portabilité Android + iOS
 
 - **Zéro couplage Android dans `commonMain`** : Pas de `Context`, pas de `SharedPreferences`.
 - **Ponts natifs unifiés** : Interfaces communes et implémentations adaptées aux SDKs natifs (`androidMain` & `iosMain`).
