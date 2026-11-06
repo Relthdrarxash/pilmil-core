@@ -27,10 +27,15 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core-model"))
+            implementation(project(":core-platform"))
             implementation(libs.kotlinx.coroutines.core)
         }
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
+            implementation(project.dependencies.platform(libs.androidx.compose.bom))
+            implementation(libs.androidx.compose.ui)
+            implementation(libs.androidx.compose.foundation)
+            implementation(libs.androidx.compose.material3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -47,5 +52,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        compose = true
     }
 }
