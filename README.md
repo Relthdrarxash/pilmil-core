@@ -32,3 +32,7 @@ pilmil-core/
 - **Ponts natifs unifiés** : Interfaces communes et implémentations adaptées aux SDKs natifs (`androidMain` & `iosMain`).
 - **Compose Multiplatform (CMP)** : Composants UI réutilisables sur Android et iOS.
 - **iPhone et mutualisation** : approche, faisabilité par appli et mode de partage de `pilmil-core`, dans [docs/IPHONE_ET_MUTUALISATION.md](docs/IPHONE_ET_MUTUALISATION.md).
+
+## Licence
+
+GNU GPL v3.0 ([LICENSE](LICENSE)), avec une [permission additionnelle](LICENSE-EXCEPTION.md) (article 7) qui autorise la distribution par les magasins d'applications, App Store compris, tant que le code source reste disponible sous la même licence.
