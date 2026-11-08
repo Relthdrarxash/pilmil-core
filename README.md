@@ -2,7 +2,7 @@
 
 **pilmil-core** est la bibliothèque d'infrastructure partagée (Android & iOS) de la suite d'applications d'intérêt général **Pilmil Studio** (*Sauve*, *Sommelle*, *Lunaison*, *Respire*, *Sillon*).
 
-100 % hors-ligne, zéro permission réseau, zéro télémétrie, sous licence GPL-3.0.
+100 % hors-ligne, zéro permission réseau, zéro télémétrie, sous licence MPL-2.0.
 
 ---
 
@@ -35,4 +35,4 @@ pilmil-core/
 
 ## Licence
 
-GNU GPL v3.0 ([LICENSE](LICENSE)), avec une [permission additionnelle](LICENSE-EXCEPTION.md) (article 7) qui autorise la distribution par les magasins d'applications, App Store compris, tant que le code source reste disponible sous la même licence.
+Distribuée sous licence [Mozilla Public License 2.0](LICENSE) (MPL-2.0) : vous pouvez l'utiliser, l'étudier, la modifier et la redistribuer ; les fichiers que vous modifiez doivent rester publiés sous la même licence, avec leur code source. La MPL-2.0 est compatible avec l'App Store : aucune exception n'est nécessaire.

@@ -8,7 +8,7 @@ Document de décision. État au 8 novembre 2026.
 2. Ordre de portage : Sauve (pilote en cours), Sommelle, Lunaison, Sillon, puis Respire sous une forme réduite.
 3. Widgets, notifications locales, Siri et Screen Time restent écrits en natif iOS (Swift ou appels Kotlin vers les API Apple).
 4. Le code commun entre applis reste un petit noyau stable (`pilmil-core`) : pas de design system unique.
-5. `pilmil-core` est intégré par sous-module Git et build composite, appli par appli, au moment de son portage iOS. Avant toute publication, le propriétaire doit trancher la question GPL-3.0 et App Store.
+5. `pilmil-core` est intégré par sous-module Git et build composite, appli par appli, au moment de son portage iOS. La question de la licence et de l'App Store est réglée : les dépôts passent de la GPL-3.0 à la MPL-2.0, compatible avec l'App Store sans exception.
 
 ## 2. Approche technique retenue
 
@@ -178,14 +178,15 @@ On l'introduit appli par appli, au moment de son portage iOS, pas avant. Une app
 - **Compte Apple Developer** : 99 USD par an. Indispensable pour TestFlight et l'App Store, et pour demander l'entitlement Family Controls.
 - **Mac ou CI macOS** : la compilation iOS exige Xcode, donc macOS. Les runners macOS de GitHub Actions sont gratuits pour les dépôts publics. Un Mac reste utile pour déboguer sur appareil.
 
-### Licence GPL-3.0 et App Store
+### Licence et App Store
 
-C'est la décision la plus importante. Les conditions de l'App Store ajoutent des restrictions d'usage (DRM, limites de copie, conditions d'utilisation Apple) que la GPL-3.0 interdit d'ajouter (article 10). L'incompatibilité est reconnue par la FSF. En 2011, VLC a été retiré de l'App Store après une plainte d'un de ses contributeurs. VLC est revenu en 2013 après passage du code concerné sous LGPL/MPL, avec l'accord des auteurs.
+Question réglée par le passage à la Mozilla Public License 2.0 (MPL-2.0).
 
-Solutions :
+Le problème de départ : les conditions de l'App Store ajoutent des restrictions d'usage (DRM, limites de copie, conditions d'utilisation Apple) que la GPL-3.0 interdit d'ajouter (article 10). L'incompatibilité est reconnue par la FSF. En 2011, VLC a été retiré de l'App Store après une plainte d'un de ses contributeurs. VLC est revenu en 2013 après passage du code concerné sous LGPL/MPL, avec l'accord des auteurs.
 
-- **Auteur unique** : ajouter au fichier `LICENSE` une exception de licence (permission additionnelle au sens de l'article 7 de la GPL-3.0) autorisant la distribution par l'App Store. Autre voie : double licence (GPL-3.0 plus MPL-2.0 par exemple).
-- **Contributeurs externes** : il faut l'accord écrit de chacun pour le code qu'il a écrit, ou réécrire ce code.
+Décision : le propriétaire, seul titulaire des droits, a placé ses dépôts sous MPL-2.0. C'est un copyleft par fichier : les fichiers modifiés doivent rester sous MPL-2.0, avec leur code source, mais la licence n'interdit pas d'ajouter des conditions de distribution comme celles d'Apple. Elle est donc compatible avec l'App Store, et aucune exception de licence n'est nécessaire. La MPL-2.0 reste une licence libre reconnue par la FSF et l'OSI. Les versions déjà publiées sous GPL-3.0 restent sous GPL-3.0 pour ceux qui les ont reçues.
+
+Pour tout futur contributeur externe, ses apports sont sous MPL-2.0 dès leur dépôt : aucun accord supplémentaire n'est à demander pour l'App Store.
 
 Constat sur l'historique Git (historique complet, clones approfondis avec `git fetch --unshallow`, toutes branches) :
 
@@ -201,12 +202,12 @@ Constat sur l'historique Git (historique complet, clones approfondis avec `git f
 Lecture :
 
 - `Relthdrarxash` utilise l'adresse noreply GitHub du propriétaire du dépôt.
-- `d07pwn3d <d07pwn3d@pop-os.home>` est une identité Git locale (nom de machine Pop!_OS), sans compte GitHub associé dans les métadonnées. Elle semble correspondre au même propriétaire sur un autre poste. **À confirmer par le propriétaire.** Si ce n'est pas lui, il faut l'accord de cette personne.
+- `d07pwn3d <d07pwn3d@pop-os.home>` est une identité Git locale (nom de machine Pop!_OS), sans compte GitHub associé dans les métadonnées. Elle correspond au même propriétaire sur un autre poste, ce qu'il a confirmé.
 - `Claude` : commits produits par un assistant IA pour le compte du propriétaire. Pas un tiers ayant des droits à céder, mais la question des droits sur du code généré mérite d'être notée dans la décision.
 - `github-actions[bot]` : captures d'écran régénérées. `dependabot[bot]` : montées de version d'actions GitHub dans les workflows. Pas d'apport créatif.
 - Aucun contributeur humain externe n'apparaît.
 
-Si l'identité `d07pwn3d` est confirmée, le propriétaire est auteur unique et peut ajouter l'exception de licence seul, dépôt par dépôt. À faire avant la première soumission à Apple, et avant d'accepter toute contribution externe.
+Le propriétaire a confirmé être le seul auteur humain, sous les identités `Relthdrarxash` et `d07pwn3d`. Il a donc pu changer seul la licence de chaque dépôt.
 
 ### Confidentialité
 
@@ -226,7 +227,7 @@ Prévoir un ou deux allers-retours de revue par appli.
 
 | Étape | Contenu | Critère de fin vérifiable |
 |---:|---|---|
-| 0 | Décisions du propriétaire | Compte Apple Developer actif. Identité `d07pwn3d` confirmée. Exception de licence ajoutée au `LICENSE` de sauve. |
+| 0 | Décisions du propriétaire | Compte Apple Developer actif. Identité `d07pwn3d` confirmée. `LICENSE` de sauve passé à la MPL-2.0. |
 | 1 | Pilote Sauve : compilation | Workflow iOS vert sur GitHub Actions (framework `Shared` et coque XcodeGen). Tests `commonTest` verts sur Android et iOS. |
 | 2 | Pilote Sauve : appareil | Build sur TestFlight. Métronome, synthèse vocale et haptique vérifiés sur un iPhone réel. |
 | 3 | Pilote Sauve : publication | Widget SOS en WidgetKit et App Shortcuts. Appli acceptée sur l'App Store. |
