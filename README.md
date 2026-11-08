@@ -31,3 +31,4 @@ pilmil-core/
 - **Zéro couplage Android dans `commonMain`** : Pas de `Context`, pas de `SharedPreferences`.
 - **Ponts natifs unifiés** : Interfaces communes et implémentations adaptées aux SDKs natifs (`androidMain` & `iosMain`).
 - **Compose Multiplatform (CMP)** : Composants UI réutilisables sur Android et iOS.
+- **iPhone et mutualisation** : approche, faisabilité par appli et mode de partage de `pilmil-core`, dans [docs/IPHONE_ET_MUTUALISATION.md](docs/IPHONE_ET_MUTUALISATION.md).
