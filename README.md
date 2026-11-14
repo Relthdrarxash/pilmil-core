@@ -26,6 +26,14 @@ pilmil-core/
 
 ---
 
+## Sauvegarde chiffrée (.pilmil v1)
+
+`AndroidBackupVault` chiffre une sauvegarde par phrase secrète (PBKDF2 + AES-256-GCM) dans un conteneur `.pilmil`. Format, paramètres et limites : voir la KDoc de `AndroidBackupVault`.
+
+## Permissions Android
+
+`core-platform` déclare `android.permission.VIBRATE` dans son `AndroidManifest.xml` (fusionné dans l'application consommatrice).
+
 ## Portabilité Android + iOS
 
 - **Zéro couplage Android dans `commonMain`** : Pas de `Context`, pas de `SharedPreferences`.

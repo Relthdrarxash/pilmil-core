@@ -21,7 +21,7 @@ import javax.crypto.spec.SecretKeySpec
  * - Octets 0..5   : "PILMIL" (ASCII, 6 octets)
  * - Octet 6       : Version (0x01)
  * - Octets 7..22  : Sel cryptographique KDF (16 octets aléatoires)
- * - Octets 23..26 : Itérations PBKDF2 (4 octets, entier grand-boutiste, standard 100 000)
+ * - Octets 23..26 : Itérations PBKDF2 (4 octets, entier grand-boutiste, standard 600 000 ; les anciens conteneurs à 100 000 restent lisibles)
  * - Octets 27..38 : Vecteur d'initialisation GCM (12 octets aléatoires)
  * - Octets 39..N  : Charge utile chiffrée AES-256-GCM + tag d'authentification 128 bits
  *
@@ -31,17 +31,23 @@ import javax.crypto.spec.SecretKeySpec
 class AndroidBackupVault(
     private val iterations: Int = DEFAULT_ITERATIONS,
     private val secureRandom: SecureRandom = SecureRandom(),
+    private val maxDecompressedSize: Int = MAX_DECOMPRESSED_SIZE,
 ) : BackupVault {
 
     companion object {
         val MAGIC: ByteArray = "PILMIL".toByteArray(Charsets.US_ASCII)
         const val VERSION: Byte = 1
-        const val DEFAULT_ITERATIONS: Int = 100_000
+        const val DEFAULT_ITERATIONS: Int = 600_000
         const val SALT_LENGTH: Int = 16
         const val IV_LENGTH: Int = 12
         const val KEY_LENGTH_BITS: Int = 256
         const val GCM_TAG_LENGTH_BITS: Int = 128
         const val HEADER_LENGTH: Int = 6 + 1 + SALT_LENGTH + 4 + IV_LENGTH
+        /** Plafond de la charge utile décompressée (protection contre les bombes GZIP). */
+        const val MAX_DECOMPRESSED_SIZE: Int = 50 * 1024 * 1024
+        const val MIN_ITERATIONS: Int = 1_000
+        const val MAX_ITERATIONS: Int = 2_000_000
+        const val CHUNK_SIZE: Int = 8 * 1024
         const val MIN_CONTAINER_SIZE: Int = HEADER_LENGTH + (GCM_TAG_LENGTH_BITS / 8)
     }
 
@@ -52,17 +58,17 @@ class AndroidBackupVault(
         val iv = ByteArray(IV_LENGTH).also { secureRandom.nextBytes(it) }
 
         // 1. Dérivation de la clé AES-256
-        val secretKey = deriveKey(passphrase, salt, iterations)
+        val secretKey = deriveKeyOrFail(passphrase, salt, iterations)
 
         // 2. Compression préalable de la charge utile (GZIP)
         val compressed = compressGzip(payloadUtf8.toByteArray(Charsets.UTF_8))
 
         // 3. Chiffrement AES-256-GCM avec AAD liant l'en-tête (Magic + Version)
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        val gcmSpec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, gcmSpec)
-        cipher.updateAAD(byteArrayOf(*MAGIC, VERSION))
-        val ciphertext = cipher.doFinal(compressed)
+        val ciphertext = try {
+            cipher(Cipher.ENCRYPT_MODE, secretKey, iv).doFinal(compressed)
+        } catch (e: GeneralSecurityException) {
+            throw BackupException("Chiffrement de la sauvegarde impossible", e)
+        }
 
         // 4. Assemblage du conteneur binaire (.pilmil)
         val output = ByteBuffer.allocate(HEADER_LENGTH + ciphertext.size)
@@ -100,8 +106,8 @@ class AndroidBackupVault(
         // 3. Extraction du sel, du nombre d'itérations et du nonce IV
         val salt = ByteArray(SALT_LENGTH).also { buffer.get(it) }
         val iter = buffer.int
-        if (iter !in 1_000..2_000_000) {
-            throw CorruptedBackupException("Nombre d'itérations KDF suspect ou invalide : $iter")
+        if (iter !in MIN_ITERATIONS..MAX_ITERATIONS) {
+            throw CorruptedBackupException("Nombre d'itérations KDF suspect ou invalide : $iter (attendu entre $MIN_ITERATIONS et $MAX_ITERATIONS)")
         }
         val iv = ByteArray(IV_LENGTH).also { buffer.get(it) }
 
@@ -109,10 +115,12 @@ class AndroidBackupVault(
         val ciphertext = ByteArray(buffer.remaining()).also { buffer.get(it) }
 
         // 5. Dérivation et déchiffrement AES-256-GCM
-        val secretKey = deriveKey(passphrase, salt, iter)
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        cipher.updateAAD(byteArrayOf(*MAGIC, VERSION))
+        val secretKey = deriveKeyOrFail(passphrase, salt, iter)
+        val cipher = try {
+            cipher(Cipher.DECRYPT_MODE, secretKey, iv)
+        } catch (e: GeneralSecurityException) {
+            throw BackupException("Initialisation du déchiffrement impossible", e)
+        }
 
         val compressed = try {
             cipher.doFinal(ciphertext)
@@ -130,11 +138,30 @@ class AndroidBackupVault(
         return String(decompressed, Charsets.UTF_8)
     }
 
+    /** Chiffre initialisé avec l'AAD (Magic + Version) qui lie l'en-tête à l'authentification. */
+    private fun cipher(mode: Int, key: SecretKeySpec, iv: ByteArray): Cipher =
+        Cipher.getInstance("AES/GCM/NoPadding").also {
+            it.init(mode, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+            it.updateAAD(byteArrayOf(*MAGIC, VERSION))
+        }
+
+    /** Convertit toute erreur inattendue de dérivation en [BackupException] du module. */
+    private fun deriveKeyOrFail(passphrase: CharArray, salt: ByteArray, iter: Int): SecretKeySpec =
+        try {
+            deriveKey(passphrase, salt, iter)
+        } catch (e: Exception) {
+            throw BackupException("Dérivation de la clé impossible", e)
+        }
+
     private fun deriveKey(passphrase: CharArray, salt: ByteArray, iter: Int): SecretKeySpec {
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
         val spec = PBEKeySpec(passphrase, salt, iter, KEY_LENGTH_BITS)
-        val rawKey = factory.generateSecret(spec).encoded
-        return SecretKeySpec(rawKey, "AES")
+        try {
+            val rawKey = factory.generateSecret(spec).encoded
+            return SecretKeySpec(rawKey, "AES")
+        } finally {
+            spec.clearPassword()
+        }
     }
 
     private fun compressGzip(data: ByteArray): ByteArray {
@@ -144,7 +171,18 @@ class AndroidBackupVault(
     }
 
     private fun decompressGzip(compressed: ByteArray): ByteArray {
-        val bis = ByteArrayInputStream(compressed)
-        return GZIPInputStream(bis).use { it.readBytes() }
+        val out = ByteArrayOutputStream()
+        val chunk = ByteArray(CHUNK_SIZE)
+        GZIPInputStream(ByteArrayInputStream(compressed)).use { input ->
+            while (true) {
+                val read = input.read(chunk)
+                if (read < 0) break
+                if (out.size() + read > maxDecompressedSize) {
+                    throw CorruptedBackupException("Charge utile décompressée supérieure à $maxDecompressedSize octets")
+                }
+                out.write(chunk, 0, read)
+            }
+        }
+        return out.toByteArray()
     }
 }
